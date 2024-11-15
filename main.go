@@ -1,14 +1,15 @@
-// ceph-quickrbytes
-//
 package main
 
 import (
 	"fmt"
-	// "io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/spf13/pflag"
 )
 
 type Work struct {
@@ -21,19 +22,46 @@ type Result struct {
 	err   error
 }
 
+const (
+	KB = 1024
+	MB = 1024 * KB
+	GB = 1024 * MB
+)
+
+func formatBytes(bytes string, unit string) (string, error) {
+	bytesInt, err := strconv.ParseInt(strings.TrimSpace(bytes), 10, 64)
+	if err != nil {
+		return "", fmt.Errorf("error parsing bytes: %v", err)
+	}
+
+	switch strings.ToLower(unit) {
+	case "kb":
+		return fmt.Sprintf("%.2f KB", float64(bytesInt)/float64(KB)), nil
+	case "mb":
+		return fmt.Sprintf("%.2f MB", float64(bytesInt)/float64(MB)), nil
+	case "gb":
+		return fmt.Sprintf("%.2f GB", float64(bytesInt)/float64(GB)), nil
+	default:
+		return bytes, nil
+	}
+}
+
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <directory>\n", os.Args[0])
+	units := pflag.StringP("units", "u", "", "display units (kb, mb, gb)")
+	pflag.Parse()
+
+	args := pflag.Args()
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "Usage: %s [--units kb|mb|gb] <parent_directory>\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	baseDir := os.Args[1]
+	baseDir := args[0]
 
 	workChan := make(chan Work, 100)
 	resultChan := make(chan Result, 100)
 	var wg sync.WaitGroup
 
-	// Start worker goroutines
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go worker(workChan, resultChan, &wg)
@@ -47,7 +75,7 @@ func main() {
 	go func() {
 		entries, err := os.ReadDir(baseDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading directory: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error reading directory: %v\n", err)
 			close(workChan)
 			return
 		}
@@ -64,10 +92,21 @@ func main() {
 
 	for result := range resultChan {
 		if result.err != nil {
-			fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", result.path, result.err)
+			fmt.Fprintf(os.Stderr, "error processing %s: %v\n", result.path, result.err)
 			continue
 		}
-		fmt.Printf("%s\t%s\n", result.path, result.bytes)
+
+		formattedBytes := result.bytes
+		if *units != "" {
+			formatted, err := formatBytes(result.bytes, *units)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error formatting bytes for %s: %v\n", result.path, err)
+				continue
+			}
+			formattedBytes = formatted
+		}
+
+		fmt.Printf("%s\t%s\n", result.path, formattedBytes)
 	}
 }
 
