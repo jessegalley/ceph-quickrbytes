@@ -20,7 +20,7 @@ example:
 
 example with output units:
 
-    user@host~# /root/ceph-quickrbytes /mnt/ceph/quota_test/home/ | tail -n5
+    user@host~# /root/ceph-quickrbytes -u mb /mnt/ceph/quota_test/home/ | tail -n5
     /mnt/ceph/quota_test/home/user995       3.50 GB
     /mnt/ceph/quota_test/home/user996       1.73 GB
     /mnt/ceph/quota_test/home/user997       7.10 GB
