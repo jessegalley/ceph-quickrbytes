@@ -47,12 +47,19 @@ func formatBytes(bytes string, unit string) (string, error) {
 }
 
 func main() {
-	units := pflag.StringP("units", "u", "", "display units (kb, mb, gb)")
+  pflag.Usage = func() {
+    fmt.Fprintf(os.Stderr, "usage: %s [flags] <parent_directory>\n", os.Args[0])
+    fmt.Fprintf(os.Stderr, "\nreads recursive bytes used from Ceph directory attributes\n")
+    fmt.Fprintf(os.Stderr, "\npolls all directories under <parent_directory> and displays the stats in stdout\n")
+    fmt.Fprintf(os.Stderr, "\nflags:\n")
+    pflag.PrintDefaults()
+  }
+  units := pflag.StringP("units", "u", "", "display units (kb, mb, gb)")
 	pflag.Parse()
 
 	args := pflag.Args()
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "Usage: %s [--units kb|mb|gb] <parent_directory>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "usage: %s [--units kb|mb|gb] <parent_directory>\n", os.Args[0])
 		os.Exit(1)
 	}
 
