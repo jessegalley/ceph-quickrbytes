@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
+const version = "1.1.0"
+
 type Work struct {
 	path string
 }
@@ -47,19 +49,26 @@ func formatBytes(bytes string, unit string) (string, error) {
 }
 
 func main() {
-  pflag.Usage = func() {
-    fmt.Fprintf(os.Stderr, "usage: %s [flags] <parent_directory>\n", os.Args[0])
-    fmt.Fprintf(os.Stderr, "\nreads recursive bytes used from Ceph directory attributes\n")
-    fmt.Fprintf(os.Stderr, "\npolls all directories under <parent_directory> and displays the stats in stdout\n")
-    fmt.Fprintf(os.Stderr, "\nflags:\n")
-    pflag.PrintDefaults()
-  }
-  units := pflag.StringP("units", "u", "", "display units (kb, mb, gb)")
+	pflag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "usage: %s [flags] <parent_directory>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "\nreads recursive bytes used from ceph directory attributes\n")
+		fmt.Fprintf(os.Stderr, "\npolls all directories under <parent_directory> and displays the stats in stdout\n")
+		fmt.Fprintf(os.Stderr, "\nflags:\n")
+		pflag.PrintDefaults()
+	}
+
+	units := pflag.StringP("units", "u", "", "display units (kb, mb, gb)")
+	showVersion := pflag.BoolP("version", "v", false, "show version information")
 	pflag.Parse()
+
+	if *showVersion {
+		fmt.Printf("%s\n", version)
+		os.Exit(0)
+	}
 
 	args := pflag.Args()
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: %s [--units kb|mb|gb] <parent_directory>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "usage: %s [--units kb|mb|gb] [--version] <parent_directory>\n", os.Args[0])
 		os.Exit(1)
 	}
 
